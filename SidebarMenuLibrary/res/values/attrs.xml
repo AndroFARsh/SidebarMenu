@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="SidebarLayout">
+        <attr name="use_content_cache" format="boolean"/>
+        <attr name="android:duration" />
+        <attr name="android:interpolator" />
+        <attr name="shadow" format="reference"/>
+        <attr name="sidebar_mode">
+            <enum name="fixed" value="0" />
+            <enum name="slided" value="1" />
+        </attr>
+        <attr name="dragbar" format="reference" />
+        <attr name="sidebar_size" format="dimension|fraction" />
+        <attr name="toggle_coefficient" format="fraction" />
+        <attr name="sidebar" format="reference" />
+        <attr name="content" format="reference" />
+        <attr name="debug_mode" format="boolean" />
+        <attr name="sidebar_align">
+            <enum name="left" value="1" />
+            <enum name="top" value="4" />
+            <enum name="right" value="2" />
+            <enum name="bottom" value="8" />
+        </attr>
+    </declare-styleable>
+</resources>

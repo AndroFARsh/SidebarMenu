@@ -1,0 +1,10 @@
+<ListView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/sidebar"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/background_dark"
+    android:divider="@color/divider"
+    android:dividerHeight="1dp"
+    android:overScrollFooter="@android:color/transparent"
+    android:overScrollHeader="@android:color/transparent"/>

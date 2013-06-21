@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="dark_grey_item_default">#303030</color>
+    
+    <color name="background_dark">#272727</color>
+    <color name="background_light">#f0f1f5</color>
+
+    <color name="divider">#272727</color>
+
+    <color name="text_darck_grey">#333</color>
+    <color name="text_light_grey">#999</color>
+</resources>

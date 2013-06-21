@@ -1,0 +1,11 @@
+<resources>
+    <string name="demo_title_pattern" formatted="false">%s - %s</string>
+    <string name="app_name">SidebarMenu</string>
+    <string name="git_repository">Git Repository</string>
+    <string name="empty"></string>
+    
+    <string name="wp0">Wallpaper 1</string>
+    <string name="wp1">Wallpaper 2</string>
+    <string name="wp2">Wallpaper 3</string>
+    
+</resources>
