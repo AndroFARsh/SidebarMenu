@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android" >
+    <item android:id="@+id/debug_mode" android:title="@string/debug_mode" android:checkable="true" />
+    <item android:id="@+id/sidebar_mode" android:title="@string/sidebar_mode" android:checkable="true" />
+    <item android:id="@+id/content_mode" android:title="@string/content_mode" android:checkable="true" />
+    <item android:id="@+id/sidebar_hierarchy" android:title="@string/sidebar_hierarchy" android:checkable="true" />
+</menu>

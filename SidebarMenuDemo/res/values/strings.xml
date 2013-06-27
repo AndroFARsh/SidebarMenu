@@ -1,11 +1,19 @@
 <resources>
     <string name="demo_title_pattern" formatted="false">%s - %s</string>
     <string name="app_name">SidebarMenu</string>
+    <string name="simple_demo_name">Simple Demo</string>
     <string name="git_repository">Git Repository</string>
     <string name="empty"></string>
     
     <string name="wp0">Wallpaper 1</string>
     <string name="wp1">Wallpaper 2</string>
     <string name="wp2">Wallpaper 3</string>
+    <string name="debug_mode">Debug Mode</string>
+    <string name="sidebar_mode">Sidebar Slided</string>
+    <string name="content_mode">Content Slided</string>
+    <string name="sidebar_hierarchy">Sidebar Over Content</string>
+    <string name="view_from_code_demo_name">View From Code Demo</string>
+    <string name="align_demo_name">Align Demo</string>
+    <string name="align">"Align: "</string>
     
 </resources>

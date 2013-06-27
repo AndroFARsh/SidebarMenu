@@ -1,80 +1,75 @@
 package org.androfarsh.demo.sidebar;
 
-import org.androfarsh.widget.SidebarLayout;
+import java.lang.reflect.Field;
 
-import android.annotation.TargetApi;
-import android.app.ActionBar;
-import android.os.Build;
+import android.app.Activity;
+import android.content.Intent;
 import android.os.Bundle;
+import android.view.Menu;
+import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
 import android.widget.BaseAdapter;
-import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
 
+@SuppressWarnings("rawtypes")
 public class MainActivity extends BaseActivity {
-	private static final int[] WALLPAPER_DRAWABLE = new int[]{R.drawable.wp0, R.drawable.wp1, R.drawable.wp2};
-	private static final int[] WALLPAPER_TITLES = new int[]{R.string.wp0, R.string.wp1, R.string.wp2};
-	
-	private ListView mSidebar;
-	private ImageView mContent;
-	private SidebarLayout mRoot;
+	private static final Class[] DEMOS = new Class[]{SimpleDemoActivity.class, ViewFromCodeDemoActivity.class, AlignDemoActivity.class};
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		setContentView(R.layout.activity_main);
-		
-		enableHome();
-		
-		mRoot = (SidebarLayout) findViewById(R.id.root);
-		mSidebar = (ListView) findViewById(R.id.sidebar);
-		mContent = (ImageView) findViewById(R.id.content);
-		
-		mSidebar.setAdapter(new SidebarAdapter());
-		mSidebar.setOnItemClickListener(new OnItemClickListener() {
+		setContentView(R.layout.main_screen);
+
+		ListView list = (ListView) findViewById(android.R.id.list);
+		list.setAdapter(new DemoActivityAdapter());
+		list.setOnItemClickListener(new OnItemClickListener() {
 
 			@Override
-			public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-				mContent.setImageResource(WALLPAPER_DRAWABLE[position]);
-				mRoot.closeSidebar();
+			public void onItemClick(AdapterView<?> parent, View view,
+					int position, long id) {
+				Intent intent = new Intent(MainActivity.this, DEMOS[position]);
+				startActivity(intent);
 			}
 		});
 	}
 
-	@TargetApi(Build.VERSION_CODES.HONEYCOMB)
-	private void enableHome() {
-		if (Build.VERSION.SDK_INT > Build.VERSION_CODES.HONEYCOMB){
-			ActionBar actionBar = getActionBar();
-			actionBar.setDisplayHomeAsUpEnabled(true);
-		}
-	}
-	
-	@Override
-	public boolean onMenuItemSelected(int featureId, MenuItem item) {
-		switch (item.getItemId()) {
-		case android.R.id.home:
-			mRoot.toggleSidebar();
-			return true;
-		default:	
-			return super.onMenuItemSelected(featureId, item);
-		}
-	}
+	private final class DemoActivityAdapter extends BaseAdapter {
+		private final int[] colors;
 
-	class SidebarAdapter extends BaseAdapter {
-
-		@Override
-		public int getCount() {
-			return Math.min(WALLPAPER_DRAWABLE.length, WALLPAPER_TITLES.length);
+		public DemoActivityAdapter() {
+			colors = getResources().getIntArray(R.array.colors);
 		}
 
 		@Override
-		public Object getItem(int position) {
-			throw new UnsupportedOperationException();
+		public View getView(int position, View convertView, ViewGroup parent) {
+			if (convertView == null){
+				convertView = getLayoutInflater().inflate(R.layout.demo_item, parent, false);
+				TAG tag = new TAG();
+				tag.color = convertView.findViewById(R.id.color);
+				tag.text = (TextView) convertView.findViewById(R.id.text);
+				convertView.setTag(tag);
+			}
+
+			final TAG tag = (TAG) convertView.getTag();
+			final Class<? extends Activity> clazz = getItem(position);
+			try {
+				Field title = clazz.getField("TITLE");
+				tag.text.setText(title.getInt(clazz));
+			} catch (IllegalArgumentException e) {
+				throw new RuntimeException(e);
+			} catch (IllegalAccessException e) {
+				throw new RuntimeException(e);
+			} catch (NoSuchFieldException e) {
+				tag.text.setText(clazz.getSimpleName());
+			}
+
+			tag.color.setBackgroundColor(getColor(position));
+			return convertView;
 		}
 
 		@Override
@@ -83,25 +78,26 @@ public class MainActivity extends BaseActivity {
 		}
 
 		@Override
-		public View getView(int position, View convertView, ViewGroup parent) {
-			if (convertView == null){
-				final TAG tag = new TAG();
-				convertView = getLayoutInflater().inflate(R.layout.sidebar_item, parent, false);
-				convertView.setTag(tag);
-
-				tag.icon = (ImageView) convertView.findViewById(android.R.id.icon);
-				tag.title = (TextView) convertView.findViewById(android.R.id.title);
-			}
-			final TAG tag = (TAG) convertView.getTag();
-			tag.icon.setImageResource(WALLPAPER_DRAWABLE[position]);
-			tag.title.setText(WALLPAPER_TITLES[position]);
-			return convertView;
+		@SuppressWarnings("unchecked")
+		public Class<? extends Activity> getItem(int position) {
+			return DEMOS[position];
 		}
-		
+
+		@Override
+		public int getCount() {
+			return DEMOS.length;
+		}
+
+		private int getColor(int position){
+			if (position >= colors.length){
+				position = position - ((position / colors.length)*colors.length);
+			}
+			return colors[position];
+		}
 	}
-	
+
 	static class TAG {
-		ImageView icon;
-		TextView title;
+		View color;
+		TextView text;
 	}
 }

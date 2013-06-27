@@ -1,0 +1,22 @@
+<org.androfarsh.widget.SidebarLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    app:content="@+id/content"
+    app:sidebar="@+id/sidebar"
+    app:sidebar_hierarchy="over_content" >
+
+    <ViewSwitcher
+        android:id="@+id/sidebar"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" >
+
+        <include layout="@layout/v_align_sidebar" />
+
+        <include layout="@layout/h_align_sidebar" />
+    </ViewSwitcher>
+
+    <include layout="@layout/align_content" android:id="@+id/content" />
+
+</org.androfarsh.widget.SidebarLayout>

@@ -15,30 +15,28 @@
  */
 package org.androfarsh.widget;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import android.content.Context;
 import android.content.res.TypedArray;
-import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Rect;
-import android.graphics.Region;
-import android.graphics.Region.Op;
-import android.graphics.drawable.Drawable;
 import android.util.AttributeSet;
 import android.util.TypedValue;
 import android.view.MotionEvent;
 import android.view.VelocityTracker;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.view.animation.Interpolator;
 import android.view.animation.LinearInterpolator;
-import android.view.animation.TranslateAnimation;
-import android.widget.ImageView;
-import android.widget.RelativeLayout;
-import android.widget.ViewSwitcher;
 
+import com.nineoldandroids.animation.Animator;
+import com.nineoldandroids.animation.Animator.AnimatorListener;
+import com.nineoldandroids.animation.AnimatorSet;
+import com.nineoldandroids.animation.ObjectAnimator;
 
 public class SidebarLayout extends ViewGroup {
 	private static final String RES_TYPE_LAYOUT = "layout";
@@ -47,6 +45,9 @@ public class SidebarLayout extends ViewGroup {
 
 	public static final int FIXED = 0;
 	public static final int SLIDE = 1;
+
+	public static final int OVER_CONTENT = 1;
+	public static final int UNDER_CONTENT = 0;
 
 	public static final int LEFT = 1;
 	public static final int RIGHT = 2;
@@ -62,18 +63,14 @@ public class SidebarLayout extends ViewGroup {
 
 	private final Rect mDragRect = new Rect();
 
-	private boolean mUseContentCache = false;
 	private boolean mOpened;
+
+	private boolean mAnimated;
 
 	private int mDuration = DURATION;
 	private Interpolator mInterpolator = new LinearInterpolator();
 
-	private ViewGroup mContentWraper;
-	private ViewSwitcher mContentSwitcher;
-	private ImageView mContentImage;
-
 	private ViewHolder mContent;
-	private ViewHolder mDragbar;
 	private ViewHolder mSidebar;
 
 	private int mSidebarHeight;
@@ -98,15 +95,12 @@ public class SidebarLayout extends ViewGroup {
 	private int mOffsetSidebar = 0;
 	private boolean mDebugMode;
 	private float mMaximumFlingVelocity = 2 * SNAP_VELOCITY;
-	private OnClickListener mClickCloseListener = new OnClickListener() {
-		@Override
-		public void onClick(View v) {
-			closeSidebar();
-		}
-	};
-	private int mSidebarMode;
+
+	private int mSidebarMode = FIXED;
+	private int mContentMode = SLIDE;
+	private int mSidebarHierarchy = UNDER_CONTENT;
 	
-	private Drawable mShadow;
+	private boolean mInitialized;
 
 	static class ViewHolder {
 		private View view;
@@ -137,6 +131,8 @@ public class SidebarLayout extends ViewGroup {
 
 		mSidebar = resolveReference(sidebarLayoutRes);
 		mContent = resolveReference(contentLayoutRes);
+		
+		init();
 	}
 
 	public SidebarLayout(Context context, AttributeSet attrs) {
@@ -158,14 +154,14 @@ public class SidebarLayout extends ViewGroup {
 		mDuration = a.getInt(R.styleable.SidebarLayout_android_duration,
 				DURATION);
 
-		mShadow = a.getDrawable(R.styleable.SidebarLayout_shadow);
-		
-		mSidebarMode = a.getInt(R.styleable.SidebarLayout_sidebar_mode, FIXED);
+		setSidebarHierarchy(a.getInt(
+				R.styleable.SidebarLayout_sidebar_hierarchy, UNDER_CONTENT));
+
+		setSidebarMode(a.getInt(R.styleable.SidebarLayout_sidebar_mode, FIXED));
+
+		setContentMode(a.getInt(R.styleable.SidebarLayout_content_mode, SLIDE));
 
 		mAlign = a.getInt(R.styleable.SidebarLayout_sidebar_align, LEFT);
-
-		mUseContentCache = a.getBoolean(
-				R.styleable.SidebarLayout_use_content_cache, true);
 
 		mDebugMode = a.getBoolean(R.styleable.SidebarLayout_debug_mode, false);
 
@@ -175,9 +171,6 @@ public class SidebarLayout extends ViewGroup {
 			mInterpolator = AnimationUtils.loadInterpolator(context,
 					interpolatorId);
 		}
-
-		mDragbar = resolveReference(a.getResourceId(
-				R.styleable.SidebarLayout_dragbar, UNKNOWN));
 
 		mSidebar = resolveReference(a.getResourceId(
 				R.styleable.SidebarLayout_sidebar, UNKNOWN));
@@ -197,7 +190,7 @@ public class SidebarLayout extends ViewGroup {
 		if (RES_TYPE_LAYOUT.equals(getResources().getResourceTypeName(ref))) {
 			viewHolder.view = View.inflate(getContext(), ref, null);
 			viewHolder.id = viewHolder.view.getId();
-			if (viewHolder.id == View.NO_ID){
+			if (viewHolder.id == View.NO_ID) {
 				viewHolder.id = viewHolder.view.hashCode();
 				viewHolder.view.setId(viewHolder.id);
 			}
@@ -230,6 +223,16 @@ public class SidebarLayout extends ViewGroup {
 	public void onFinishInflate() {
 		super.onFinishInflate();
 
+		init();
+	}
+
+	private void init() {
+		if (mInitialized){
+			return;
+		}
+		
+		setChildrenDrawingOrderEnabled(true);
+
 		if (mSidebar == null) {
 			throw new NullPointerException("no sidebar view");
 		}
@@ -238,32 +241,12 @@ public class SidebarLayout extends ViewGroup {
 			throw new NullPointerException("no content view");
 		}
 
-		mContentSwitcher = new ViewSwitcher(getContext());
-		if (mDragbar != null) {
-			mContentWraper = new RelativeLayout(getContext());
-			mContentWraper.addView(mDragbar.view);
-			mContentWraper.addView(mContentSwitcher);
-
-			requestDragBarLayout();
-		} else {
-			mContentWraper = mContentSwitcher;
-		}
-
-		mContentImage = new ImageView(getContext());
-		mContentImage.setOnClickListener(mClickCloseListener);
-
-		mContentSwitcher.addView(
-				mContent.view,
-				mContent.view.getLayoutParams() != null ? mContent.view
-						.getLayoutParams() : generateDefaultLayoutParams());
-		mContentSwitcher.addView(mContentImage, UNKNOWN,
-				generateDefaultLayoutParams());
-
 		super.addView(mSidebar.view, UNKNOWN, generateDefaultLayoutParams());
-		super.addView(mContentWraper, UNKNOWN, generateDefaultLayoutParams());
+		super.addView(mContent.view, UNKNOWN, generateDefaultLayoutParams());
 
 		mOpenListener = new OpenListener();
 		mCloseListener = new CloseListener();
+		mInitialized = true;
 	}
 
 	@Override
@@ -273,15 +256,38 @@ public class SidebarLayout extends ViewGroup {
 	}
 
 	@Override
+	protected int getChildDrawingOrder(int childCount, int i) {
+		final int sidebar = indexOfChild(mSidebar.view);
+		final int content = indexOfChild(mContent.view);
+		switch (getSidebarHierarchy()) {
+		case OVER_CONTENT:
+			if (i == sidebar)
+				return Math.max(sidebar, content);
+			else
+				return Math.min(sidebar, content);
+		case UNDER_CONTENT:
+			if (i == sidebar)
+				return Math.min(sidebar, content);
+			else
+				return Math.max(sidebar, content);
+		}
+		return super.getChildDrawingOrder(childCount, i);
+	}
+
+	@Override
 	public void onLayout(boolean changed, int l, int t, int r, int b) {
+		resolveLayout(l, t, r, b);
+	}
+
+	private void resolveLayout(int l, int t, int r, int b) {
 		/* the title bar assign top padding, drop it */
 		t = l = 0;
 
 		final int sidebarLeft, sidebarTop, sidebarRight, sidebarBottom;
-		final int contentLeft, contentTop, contentRight, contentBottom;
+		final Rect contentRect = new Rect();
 		switch (mAlign) {
 		case BOTTOM:
-			if (mSidebarMode == FIXED) {
+			if (getSidebarMode() == FIXED) {
 				sidebarLeft = l;
 				sidebarTop = b - mSidebarHeight;
 				sidebarRight = r;
@@ -304,26 +310,11 @@ public class SidebarLayout extends ViewGroup {
 					sidebarBottom = b + mSidebarHeight;
 				}
 			}
-
-			if (mSliding) {
-				contentLeft = l;
-				contentTop = t + mDelta;
-				contentRight = r;
-				contentBottom = b + mDelta;
-			} else if (mOpened) {
-				contentLeft = l;
-				contentTop = t - mSidebarHeight;
-				contentRight = r;
-				contentBottom = b - mSidebarHeight;
-			} else {
-				contentLeft = l;
-				contentTop = t;
-				contentRight = r;
-				contentBottom = b;
-			}
+			
+			resolveContentLayout(contentRect, l, t, r, b, -mSidebarHeight);
 			break;
 		case TOP:
-			if (mSidebarMode == FIXED) {
+			if (getSidebarMode() == FIXED) {
 				sidebarLeft = l;
 				sidebarTop = t;
 				sidebarRight = r;
@@ -347,25 +338,10 @@ public class SidebarLayout extends ViewGroup {
 				}
 			}
 
-			if (mSliding) {
-				contentLeft = l;
-				contentTop = t + mDelta;
-				contentRight = r;
-				contentBottom = b + mDelta;
-			} else if (mOpened) {
-				contentLeft = l;
-				contentTop = t + mSidebarHeight;
-				contentRight = r;
-				contentBottom = b + mSidebarHeight;
-			} else {
-				contentLeft = l;
-				contentTop = t;
-				contentRight = r;
-				contentBottom = b;
-			}
+			resolveContentLayout(contentRect, l, t, r, b, mSidebarHeight);
 			break;
 		case RIGHT:
-			if (mSidebarMode == FIXED) {
+			if (getSidebarMode() == FIXED) {
 				sidebarLeft = r - mSidebarWidth;
 				sidebarTop = t;
 				sidebarRight = r;
@@ -389,26 +365,11 @@ public class SidebarLayout extends ViewGroup {
 				}
 			}
 
-			if (mSliding) {
-				contentLeft = l + mDelta;
-				contentTop = t;
-				contentRight = r + mDelta;
-				contentBottom = b;
-			} else if (mOpened) {
-				contentLeft = l - mSidebarWidth;
-				contentTop = t;
-				contentRight = r - mSidebarWidth;
-				contentBottom = b;
-			} else {
-				contentLeft = l;
-				contentTop = t;
-				contentRight = r;
-				contentBottom = b;
-			}
+			resolveContentLayout(contentRect, l, t, r, b, -mSidebarWidth);
 			break;
 		case LEFT:
 		default:
-			if (mSidebarMode == FIXED) {
+			if (getSidebarMode() == FIXED) {
 				sidebarLeft = l;
 				sidebarTop = t;
 				sidebarRight = l + mSidebarWidth;
@@ -432,22 +393,7 @@ public class SidebarLayout extends ViewGroup {
 				}
 			}
 
-			if (mSliding) {
-				contentLeft = l + mDelta;
-				contentTop = t;
-				contentRight = r + mDelta;
-				contentBottom = b;
-			} else if (mOpened) {
-				contentLeft = l + mSidebarWidth;
-				contentTop = t;
-				contentRight = r + mSidebarWidth;
-				contentBottom = b;
-			} else {
-				contentLeft = l;
-				contentTop = t;
-				contentRight = r;
-				contentBottom = b;
-			}
+			resolveContentLayout(contentRect, l, t, r, b, mSidebarWidth);
 			break;
 		}
 
@@ -455,63 +401,54 @@ public class SidebarLayout extends ViewGroup {
 			mSidebar.view.layout(sidebarLeft, sidebarTop, sidebarRight,
 					sidebarBottom);
 		}
-		if (mContentWraper.getVisibility() != View.GONE) {
-			mContentWraper.layout(contentLeft, contentTop, contentRight,
-					contentBottom);
+		if (mContent.view.getVisibility() != View.GONE) {
+			mContent.view.layout(contentRect.left, contentRect.top, contentRect.right,
+					contentRect.bottom);
 		}
 
-		if (mDragbar != null) {
-			final int newLeft;
-			final int newTop;
-			requestRectangle(mDragRect, mDragbar.view);
+		if (getContentMode() == SLIDE){
 			if ((mAlign & VERTICAL_MASK) > 0) {
-				newTop = mAlign == TOP ? contentTop : contentBottom
-						- mDragRect.height();
-				newLeft = 0;
+				mDragRect.set(contentRect.left, (mAlign == TOP ? contentRect.top
+						- mOffsetSidebar : contentRect.bottom - mOffsetContent),
+						contentRect.right, (mAlign == TOP ? contentRect.top + mOffsetContent
+								: contentRect.bottom + mOffsetSidebar));
 			} else {
-				newTop = 0;
-				newLeft = mAlign == LEFT ? contentLeft : contentRight
-						- mDragRect.width();
+				mDragRect.set((mAlign == LEFT ? contentRect.left - mOffsetSidebar
+						: contentRect.right - mOffsetContent), contentRect.top,
+						(mAlign == LEFT ? contentRect.left + mOffsetContent
+								: contentRect.right + mOffsetSidebar), contentRect.bottom);
 			}
-
-			mDragRect.offsetTo(newLeft, newTop);
-		} else {
+		}else{
 			if ((mAlign & VERTICAL_MASK) > 0) {
-				mDragRect.set(contentLeft, (mAlign == TOP ? contentTop
-						- mOffsetSidebar : contentBottom - mOffsetContent),
-						contentRight,
-						(mAlign == TOP ? contentTop + mOffsetContent
-								: contentBottom + mOffsetSidebar));
+				mDragRect.set(sidebarLeft, (mAlign == TOP ? sidebarBottom
+						- mOffsetSidebar : sidebarTop - mOffsetContent),
+						sidebarRight, (mAlign == TOP ? sidebarBottom + mOffsetContent
+								: sidebarTop + mOffsetSidebar));
 			} else {
-				mDragRect.set((mAlign == LEFT ? contentLeft - mOffsetSidebar
-						: contentRight - mOffsetContent), contentTop,
-						(mAlign == LEFT ? contentLeft + mOffsetContent
-								: contentRight + mOffsetSidebar), contentBottom);
+				mDragRect.set((mAlign == LEFT ? sidebarRight - mOffsetSidebar
+						: sidebarLeft - mOffsetContent), sidebarTop,
+						(mAlign == LEFT ? sidebarRight + mOffsetContent
+								: sidebarLeft + mOffsetSidebar), sidebarBottom);
 			}
 		}
 	}
 
-	private static Bitmap createDrawingCache(View view) {
-		Bitmap bitmapRes = null;
-		view.buildDrawingCache();
-		final Bitmap bitmap = view.getDrawingCache();
-		if (bitmap != null) {
-			bitmapRes = Bitmap.createBitmap(bitmap);
-			bitmap.recycle();
+	private void resolveContentLayout(Rect result, int l, int t, int r, int b, int sidebarSize) {
+		result.set(l, t, r, b);
+		if (getContentMode() != FIXED) {
+			int offcet = 0;
+			if (mSliding) {
+				offcet = mDelta;
+			} else if (mOpened) {
+				offcet = sidebarSize;
+			}
+			
+			if ((mAlign & VERTICAL_MASK) > 0) {
+				result.offset(0, offcet);
+			} else {
+				result.offset(offcet, 0);
+			}
 		}
-		view.destroyDrawingCache();
-		return bitmapRes;
-	}
-
-	private void requestRectangle(Rect outRect, View view) {
-		if ((outRect == null) || (view == null)) {
-			return;
-		}
-
-		outRect.left = view.getLeft();
-		outRect.top = view.getTop();
-		outRect.right = view.getRight();
-		outRect.bottom = view.getBottom();
 	}
 
 	@Override
@@ -534,24 +471,6 @@ public class SidebarLayout extends ViewGroup {
 			paint.setColor(0x6600cc00);
 			canvas.drawRect(mDragRect, paint);
 		}
-	}
-	
-	@Override
-	protected boolean drawChild(Canvas canvas, View child, long drawingTime) {
-		boolean result = super.drawChild(canvas, child, drawingTime);
-		if (mShadow != null && child == mSidebar.view){
-			Region region = new Region(getLeft(), getTop(), getRight(), getBottom());
-			Rect rect = new Rect(mContent.view.getLeft(), mContent.view.getTop(), mContent.view.getRight(), mContent.view.getBottom());
-			region.op(rect, Op.DIFFERENCE);
-			region.getBounds(rect);
-			
-			canvas.save();
-			canvas.clipRect(rect);
-			mShadow.setBounds(rect);
-			mShadow.draw(canvas);
-			canvas.restore();
-		}
-		return result; 
 	}
 
 	@Override
@@ -603,7 +522,6 @@ public class SidebarLayout extends ViewGroup {
 									: mSidebarWidth);
 				}
 
-				requestContentChache();
 				return true;
 			}
 			break;
@@ -637,7 +555,7 @@ public class SidebarLayout extends ViewGroup {
 
 				final float velocity = ((mAlign & VERTICAL_MASK) > 0) ? mVelocityTracker
 						.getYVelocity() : mVelocityTracker.getXVelocity();
-				toggleSidebar(mDelta, velocity, 0, false);
+				toggleSidebar(mDelta, velocity, false);
 
 				mVelocityTracker.recycle();
 				mVelocityTracker = null;
@@ -688,7 +606,7 @@ public class SidebarLayout extends ViewGroup {
 		final int x = (int) ev.getX();
 		final int y = (int) ev.getY();
 
-		if (!mSliding && (mDragbar == null) && mDragRect.contains(x, y)) {
+		if (!mSliding && mDragRect.contains(x, y)) {
 			mSliding = true;
 			mPrevX = x;
 			mPrevY = y;
@@ -700,24 +618,8 @@ public class SidebarLayout extends ViewGroup {
 						* ((mAlign & VERTICAL_MASK) > 0 ? mSidebarHeight
 								: mSidebarWidth);
 			}
-
-			requestContentChache();
 		}
 		return mSliding;
-	}
-
-	private void requestContentChache() {
-		if (!mOpened) {
-			mContentImage.setImageBitmap(SidebarLayout
-					.createDrawingCache(mContent.view));
-		}
-
-		final int contentImageIndex = mContentSwitcher
-				.indexOfChild(mContentImage);
-		if (mUseContentCache
-				&& (mContentSwitcher.getDisplayedChild() != contentImageIndex)) {
-			mContentSwitcher.setDisplayedChild(contentImageIndex);
-		}
 	}
 
 	public void setListener(SidebarListener l) {
@@ -729,9 +631,8 @@ public class SidebarLayout extends ViewGroup {
 		return mOpened;
 	}
 
-	private void toggleSidebar(int from, float velocity, int startOffset,
-			boolean toggled) {
-		if ((mContentWraper.getAnimation() != null)) {
+	private void toggleSidebar(int from, float velocity, boolean toggled) {
+		if (mAnimated) {
 			return;
 		}
 
@@ -740,7 +641,7 @@ public class SidebarLayout extends ViewGroup {
 
 		final boolean rbAlign = (mAlign & RIGHT_BOTTOM_MASK) > 0;
 
-		final Animation.AnimationListener listener;
+		final AnimatorListener listener;
 
 		if (!toggled) {
 			final boolean needOpen;
@@ -767,33 +668,42 @@ public class SidebarLayout extends ViewGroup {
 		if (from == 0) {
 			listener.onAnimationEnd(null);
 		} else {
+			mAnimated = true;
 			requestLayout();
 
-			final Animation animation;
-			if ((mAlign & VERTICAL_MASK) > 0) {
-				animation = new TranslateAnimation(0, 0, from, 0);
-			} else {
-				animation = new TranslateAnimation(from, 0, 0, 0);
-			}
-
 			final int duration = (int) (this.mDuration * (Math.abs(from) / (float) sidebarSize));
-			animation.setStartOffset(startOffset);
-			animation.setAnimationListener(listener);
-			animation.setDuration(duration);
-			animation.setInterpolator(mInterpolator);
-
-			mContentWraper.startAnimation(animation);
-			if (mSidebarMode == SLIDE) {
-				mSidebar.view.startAnimation(animation);
+			final String translation = (mAlign & VERTICAL_MASK) > 0 ? "translationY"
+					: "translationX";
+			final List<Animator> animators = new ArrayList<Animator>();
+			if (getSidebarMode() == SLIDE) {
+				ObjectAnimator animator = ObjectAnimator.ofFloat(mSidebar.view,
+						translation, from, 0);
+				animator.setDuration(duration);
+				animator.setInterpolator(mInterpolator);
+				animator.addListener(listener);
+				animators.add(animator);
 			}
+
+			if (getContentMode() == SLIDE) {
+				ObjectAnimator animator = ObjectAnimator.ofFloat(mContent.view,
+						translation, from, 0);
+				animator.setDuration(duration);
+				animator.setInterpolator(mInterpolator);
+				animator.addListener(listener);
+				animators.add(animator);
+			}
+
+			final AnimatorSet animSet = new AnimatorSet();
+			animSet.addListener(listener);
+			animSet.setDuration(duration);
+			animSet.setInterpolator(mInterpolator);
+			animSet.playTogether(animators);
+			animSet.start();
 		}
 	}
 
 	public void toggleSidebar() {
-		if (!mOpened) {
-			requestContentChache();
-		}
-		toggleSidebar(0, 0, 100, true);
+		toggleSidebar(-1, 0, true);
 	}
 
 	public void openSidebar() {
@@ -821,11 +731,6 @@ public class SidebarLayout extends ViewGroup {
 				mContent.view = detachOldView(mContent.view, child, params);
 				return;
 			}
-
-			if ((mDragbar != null) && (mDragbar.id == id)) {
-				mDragbar.view = detachOldView(mDragbar.view, child, params);
-				return;
-			}
 		}
 		throw new UnsupportedOperationException();
 	}
@@ -839,56 +744,6 @@ public class SidebarLayout extends ViewGroup {
 			parent.addView(newView, newIndex, params);
 		}
 		return newView;
-	}
-
-	private void requestDragBarLayout() {
-		if (mDragbar == null) {
-			return;
-		}
-
-		final RelativeLayout.LayoutParams cLp = new RelativeLayout.LayoutParams(
-				LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT);
-		final RelativeLayout.LayoutParams barLp = new RelativeLayout.LayoutParams(
-				LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
-		switch (mAlign) {
-		case TOP:
-			cLp.addRule(RelativeLayout.BELOW, mDragbar.id);
-			barLp.addRule(RelativeLayout.ALIGN_PARENT_TOP, RelativeLayout.TRUE);
-			barLp.addRule(RelativeLayout.ALIGN_PARENT_LEFT, RelativeLayout.TRUE);
-			barLp.addRule(RelativeLayout.ALIGN_PARENT_RIGHT,
-					RelativeLayout.TRUE);
-			break;
-		case BOTTOM:
-			cLp.addRule(RelativeLayout.ABOVE, mDragbar.id);
-
-			barLp.addRule(RelativeLayout.ALIGN_PARENT_LEFT, RelativeLayout.TRUE);
-			barLp.addRule(RelativeLayout.ALIGN_PARENT_RIGHT,
-					RelativeLayout.TRUE);
-			barLp.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM,
-					RelativeLayout.TRUE);
-			break;
-		case RIGHT:
-			cLp.addRule(RelativeLayout.RIGHT_OF, mDragbar.id);
-
-			barLp.addRule(RelativeLayout.ALIGN_PARENT_TOP, RelativeLayout.TRUE);
-			barLp.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM,
-					RelativeLayout.TRUE);
-			barLp.addRule(RelativeLayout.ALIGN_PARENT_RIGHT,
-					RelativeLayout.TRUE);
-			break;
-		case LEFT:
-		default:
-			cLp.addRule(RelativeLayout.LEFT_OF, mDragbar.id);
-
-			barLp.addRule(RelativeLayout.ALIGN_PARENT_TOP, RelativeLayout.TRUE);
-			barLp.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM,
-					RelativeLayout.TRUE);
-			barLp.addRule(RelativeLayout.ALIGN_PARENT_LEFT, RelativeLayout.TRUE);
-			break;
-		}
-
-		mDragbar.view.setLayoutParams(barLp);
-		mContentSwitcher.setLayoutParams(cLp);
 	}
 
 	@Override
@@ -943,8 +798,6 @@ public class SidebarLayout extends ViewGroup {
 				throw new IllegalArgumentException("Unsupported align");
 			}
 
-			requestDragBarLayout();
-
 			requestLayout();
 			invalidate();
 		}
@@ -969,29 +822,80 @@ public class SidebarLayout extends ViewGroup {
 		}
 	}
 
+	public int getSidebarMode() {
+		return mSidebarMode;
+	}
+
 	public void setSidebarMode(int sidebarMode) {
+		if (mSidebarHierarchy == OVER_CONTENT && sidebarMode == FIXED) {
+			return;
+		}
+
 		if (this.mSidebarMode != sidebarMode) {
 			this.mSidebarMode = sidebarMode;
 			requestLayout();
 		}
 	}
 
-	class OpenListener implements Animation.AnimationListener {
+	public int getContentMode() {
+		return mContentMode;
+	}
+
+	public void setContentMode(int contentMode) {
+		if (mSidebarHierarchy == UNDER_CONTENT && contentMode == FIXED) {
+			return;
+		}
+
+		if (this.mContentMode != contentMode) {
+			this.mContentMode = contentMode;
+			requestLayout();
+		}
+	}
+
+	public int getSidebarHierarchy() {
+		return mSidebarHierarchy;
+	}
+
+	public void setSidebarSizeFraction(float size){
+		mSize = new SizeResolver(size, TypedValue.TYPE_FRACTION);
+		requestLayout();
+	}
+
+	public void setSidebarSizeDimention(float size){
+		mSize = new SizeResolver(size, TypedValue.TYPE_DIMENSION);
+		requestLayout();
+	}
+	
+	public void setSidebarHierarchy(int sidebarHierarchy) {
+		if (mSidebarHierarchy != sidebarHierarchy) {
+			mSidebarHierarchy = sidebarHierarchy;
+			switch (mSidebarHierarchy) {
+			case OVER_CONTENT:
+				setSidebarMode(SLIDE);
+				break;
+			case UNDER_CONTENT:
+				setContentMode(SLIDE);
+				break;
+			}
+			requestLayout();
+		}
+	}
+
+	class OpenListener implements AnimatorListener {
 
 		@Override
-		public void onAnimationRepeat(Animation animation) {
+		public void onAnimationRepeat(Animator animation) {
 		}
 
 		@Override
-		public void onAnimationStart(Animation animation) {
+		public void onAnimationStart(Animator animation) {
 		}
 
 		@Override
-		public void onAnimationEnd(Animation animation) {
+		public void onAnimationEnd(Animator animation) {
+			mAnimated = false;
 			mOpened = true;
 			mDelta = 0;
-			mSidebar.view.clearAnimation();
-			mContentWraper.clearAnimation();
 
 			requestLayout();
 			invalidate();
@@ -999,33 +903,39 @@ public class SidebarLayout extends ViewGroup {
 				mSidebarListener.onSidebarOpened();
 			}
 		}
+
+		@Override
+		public void onAnimationCancel(Animator animation) {
+			onAnimationEnd(animation);
+		}
 	}
 
-	class CloseListener implements Animation.AnimationListener {
+	class CloseListener implements AnimatorListener {
 
 		@Override
-		public void onAnimationRepeat(Animation animation) {
+		public void onAnimationRepeat(Animator animation) {
 		}
 
 		@Override
-		public void onAnimationStart(Animation animation) {
+		public void onAnimationStart(Animator animation) {
 		}
 
 		@Override
-		public void onAnimationEnd(Animation animation) {
+		public void onAnimationEnd(Animator animation) {
+			mAnimated = false;
 			mOpened = false;
 			mDelta = 0;
-
-			mSidebar.view.clearAnimation();
-			mContentWraper.clearAnimation();
-			mContentSwitcher.setDisplayedChild(mContentSwitcher
-					.indexOfChild(mContent.view));
 
 			requestLayout();
 			invalidate();
 			if (mSidebarListener != null) {
 				mSidebarListener.onSidebarClosed();
 			}
+		}
+
+		@Override
+		public void onAnimationCancel(Animator animation) {
+			onAnimationEnd(animation);
 		}
 	}
 

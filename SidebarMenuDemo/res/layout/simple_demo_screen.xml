@@ -5,6 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     app:sidebar_mode="slided" 
+    app:content_mode="slided" 
     app:sidebar="@layout/sidebar"
     app:content="@layout/content"
-    app:shadow="@drawable/shadow"/>
+    app:sidebar_hierarchy="over_content" />

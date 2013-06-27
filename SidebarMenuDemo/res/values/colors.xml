@@ -1,12 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+
     <color name="dark_grey_item_default">#303030</color>
-    
     <color name="background_dark">#272727</color>
     <color name="background_light">#f0f1f5</color>
-
     <color name="divider">#272727</color>
-
     <color name="text_darck_grey">#333</color>
     <color name="text_light_grey">#999</color>
+    
+    <color name="item1">#78a616</color>
+    <color name="item2">#f6592e</color>
+    <color name="item3">#259dd8</color>
+    <color name="item4">#d8259d</color>
+    <color name="item5">#d86025</color>
+
+    <integer-array name="colors">
+        <item>@color/item1</item>
+        <item>@color/item2</item>
+        <item>@color/item3</item>
+        <item>@color/item4</item>
+        <item>@color/item5</item>
+    </integer-array>
+
 </resources>
