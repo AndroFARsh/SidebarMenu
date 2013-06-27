@@ -1,6 +1,7 @@
 package org.androfarsh.demo.sidebar;
 
 import org.androfarsh.widget.SidebarLayout;
+import org.androfarsh.widget.SidebarLayout.SidebarListener;
 
 import android.content.Context;
 import android.os.Bundle;
@@ -20,20 +21,33 @@ import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemSelectedListener;
 import android.widget.ArrayAdapter;
 import android.widget.BaseAdapter;
+import android.widget.CheckBox;
+import android.widget.CompoundButton;
+import android.widget.CompoundButton.OnCheckedChangeListener;
 import android.widget.SeekBar;
+import android.widget.Toast;
 import android.widget.SeekBar.OnSeekBarChangeListener;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.ViewSwitcher;
 
 public class AlignDemoActivity extends BaseDemoActivity {
-	private static final String[] ALIGNS = new String[] { "Left", "Top",
-			"Right", "Bottom" };
-
 	public static final int TITLE = R.string.align_demo_name;
 
 	private ViewSwitcher mSidebar;
 	private SidebarLayout mRoot;
+	private SidebarListener mSidebarListener = new SidebarListener() {
+		
+		@Override
+		public void onSidebarOpened() {
+			Toast.makeText(AlignDemoActivity.this, R.string.sidebar_opened, Toast.LENGTH_SHORT).show();
+		}
+		
+		@Override
+		public void onSidebarClosed() {
+			Toast.makeText(AlignDemoActivity.this, R.string.sidebar_closed, Toast.LENGTH_SHORT).show();
+		}
+	};
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -43,7 +57,7 @@ public class AlignDemoActivity extends BaseDemoActivity {
 		mRoot = (SidebarLayout) findViewById(R.id.root);
 		mSidebar = (ViewSwitcher) findViewById(R.id.sidebar);
 
-		Spinner intepolator = (Spinner) findViewById(R.id.interpolator);
+		final Spinner intepolator = (Spinner) findViewById(R.id.interpolator);
 		intepolator.setAdapter(new InterpolatorAdapter(this));
 		intepolator.setOnItemSelectedListener(new OnItemSelectedListener() {
 
@@ -60,9 +74,8 @@ public class AlignDemoActivity extends BaseDemoActivity {
 			}
 		});
 
-		Spinner align = (Spinner) findViewById(R.id.align);
-		ArrayAdapter<String> adapter = new ArrayAdapter<String>(this,
-				android.R.layout.simple_spinner_item, ALIGNS);
+		final Spinner align = (Spinner) findViewById(R.id.align);
+		final ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this, R.array.align, android.R.layout.simple_spinner_item);
 		adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
 		align.setAdapter(adapter);
 		align.setOnItemSelectedListener(new OnItemSelectedListener() {
@@ -95,12 +108,13 @@ public class AlignDemoActivity extends BaseDemoActivity {
 			}
 		});
 		
-		SeekBar sidebarSize = (SeekBar)findViewById(R.id.sidebar_size);
+		final TextView sidebarSizeTitle = (TextView)findViewById(R.id.sidebar_size_title);
+		final SeekBar sidebarSize = (SeekBar)findViewById(R.id.sidebar_size);
 		sidebarSize.setOnSeekBarChangeListener(new OnSeekBarChangeListener() {
 			
 			@Override
 			public void onStopTrackingTouch(SeekBar seekBar) {
-				mRoot.setSidebarSizeFraction(seekBar.getProgress() * 0.01f);
+				updateSidebarSize(sidebarSizeTitle, seekBar);
 			}
 			
 			@Override
@@ -110,8 +124,25 @@ public class AlignDemoActivity extends BaseDemoActivity {
 			@Override
 			public void onProgressChanged(SeekBar seekBar, int progress,
 					boolean fromUser) {
+				sidebarSizeTitle.setText(getString(R.string.sidebar_size_pattern, progress));
 			}
 		});
+		updateSidebarSize(sidebarSizeTitle, sidebarSize);
+		
+		final CheckBox sidebarListener = (CheckBox)findViewById(R.id.sidebar_listener);
+		sidebarListener.setOnCheckedChangeListener(new OnCheckedChangeListener() {
+			
+			@Override
+			public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+				mRoot.setListener(isChecked ? mSidebarListener : null);
+			}
+		});
+	}
+	
+	private void updateSidebarSize(final TextView sidebarSizeTitle,
+			SeekBar seekBar) {
+		mRoot.setSidebarSizeFraction(seekBar.getProgress() * 0.01f);
+		sidebarSizeTitle.setText(getString(R.string.sidebar_size_pattern, seekBar.getProgress()));
 	}
 
 	@Override

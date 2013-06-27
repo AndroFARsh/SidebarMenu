@@ -15,5 +15,22 @@
     <string name="view_from_code_demo_name">View From Code Demo</string>
     <string name="align_demo_name">Align Demo</string>
     <string name="align">"Align: "</string>
+    <string name="interpolator">"Interpolator: "</string>
+    <string name="sidebar_size_pattern" formatted="false">"Sidebar size (%d%%): "</string>
+    <string name="toggle_sidebar">Toggle Sidebar</string>
+    <string name="right">Right</string>
+    <string name="left">Left</string>
+    <string name="top">Top</string>
+    <string name="bottom">Bottom</string>
+    
+    <string-array name="align">
+        <item>@string/left</item>
+        <item>@string/top</item>
+        <item>@string/right</item>
+        <item>@string/bottom</item>
+    </string-array>
+        <string name="sidebar_opened">Sidebar Opened</string>
+        <string name="sidebar_closed">Sidebar Closed</string>
+        <string name="register_sidebar_listener">Register Sidebar Listener</string>
     
 </resources>

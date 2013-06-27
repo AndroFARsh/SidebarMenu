@@ -4,8 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     app:content="@+id/content"
-    app:sidebar="@+id/sidebar"
-    app:sidebar_hierarchy="over_content" >
+    app:sidebar="@+id/sidebar" >
 
     <ViewSwitcher
         android:id="@+id/sidebar"
