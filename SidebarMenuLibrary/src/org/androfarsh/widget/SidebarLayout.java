@@ -99,7 +99,7 @@ public class SidebarLayout extends ViewGroup {
 	private int mSidebarMode = FIXED;
 	private int mContentMode = SLIDE;
 	private int mSidebarHierarchy = UNDER_CONTENT;
-	
+
 	private boolean mInitialized;
 
 	static class ViewHolder {
@@ -131,7 +131,7 @@ public class SidebarLayout extends ViewGroup {
 
 		mSidebar = resolveReference(sidebarLayoutRes);
 		mContent = resolveReference(contentLayoutRes);
-		
+
 		init();
 	}
 
@@ -227,11 +227,9 @@ public class SidebarLayout extends ViewGroup {
 	}
 
 	private void init() {
-		if (mInitialized){
+		if (mInitialized) {
 			return;
 		}
-		
-		setChildrenDrawingOrderEnabled(true);
 
 		if (mSidebar == null) {
 			throw new NullPointerException("no sidebar view");
@@ -241,9 +239,14 @@ public class SidebarLayout extends ViewGroup {
 			throw new NullPointerException("no content view");
 		}
 
-		super.addView(mSidebar.view, UNKNOWN, generateDefaultLayoutParams());
-		super.addView(mContent.view, UNKNOWN, generateDefaultLayoutParams());
-
+		if (mSidebarHierarchy == UNDER_CONTENT){
+			super.addView(mSidebar.view, UNKNOWN, generateDefaultLayoutParams());
+			super.addView(mContent.view, UNKNOWN, generateDefaultLayoutParams());
+		}else {
+			super.addView(mContent.view, UNKNOWN, generateDefaultLayoutParams());
+			super.addView(mSidebar.view, UNKNOWN, generateDefaultLayoutParams());
+		}
+	
 		mOpenListener = new OpenListener();
 		mCloseListener = new CloseListener();
 		mInitialized = true;
@@ -253,25 +256,6 @@ public class SidebarLayout extends ViewGroup {
 	protected LayoutParams generateDefaultLayoutParams() {
 		return new LayoutParams(LayoutParams.MATCH_PARENT,
 				LayoutParams.MATCH_PARENT);
-	}
-
-	@Override
-	protected int getChildDrawingOrder(int childCount, int i) {
-		final int sidebar = indexOfChild(mSidebar.view);
-		final int content = indexOfChild(mContent.view);
-		switch (getSidebarHierarchy()) {
-		case OVER_CONTENT:
-			if (i == sidebar)
-				return Math.max(sidebar, content);
-			else
-				return Math.min(sidebar, content);
-		case UNDER_CONTENT:
-			if (i == sidebar)
-				return Math.min(sidebar, content);
-			else
-				return Math.max(sidebar, content);
-		}
-		return super.getChildDrawingOrder(childCount, i);
 	}
 
 	@Override
@@ -310,7 +294,7 @@ public class SidebarLayout extends ViewGroup {
 					sidebarBottom = b + mSidebarHeight;
 				}
 			}
-			
+
 			resolveContentLayout(contentRect, l, t, r, b, -mSidebarHeight);
 			break;
 		case TOP:
@@ -402,28 +386,34 @@ public class SidebarLayout extends ViewGroup {
 					sidebarBottom);
 		}
 		if (mContent.view.getVisibility() != View.GONE) {
-			mContent.view.layout(contentRect.left, contentRect.top, contentRect.right,
-					contentRect.bottom);
+			mContent.view.layout(contentRect.left, contentRect.top,
+					contentRect.right, contentRect.bottom);
 		}
 
-		if (getContentMode() == SLIDE){
+		if (getContentMode() == SLIDE) {
 			if ((mAlign & VERTICAL_MASK) > 0) {
-				mDragRect.set(contentRect.left, (mAlign == TOP ? contentRect.top
-						- mOffsetSidebar : contentRect.bottom - mOffsetContent),
-						contentRect.right, (mAlign == TOP ? contentRect.top + mOffsetContent
-								: contentRect.bottom + mOffsetSidebar));
+				mDragRect.set(contentRect.left,
+						(mAlign == TOP ? contentRect.top - mOffsetSidebar
+								: contentRect.bottom - mOffsetContent),
+						contentRect.right, (mAlign == TOP ? contentRect.top
+								+ mOffsetContent : contentRect.bottom
+								+ mOffsetSidebar));
 			} else {
-				mDragRect.set((mAlign == LEFT ? contentRect.left - mOffsetSidebar
-						: contentRect.right - mOffsetContent), contentRect.top,
-						(mAlign == LEFT ? contentRect.left + mOffsetContent
-								: contentRect.right + mOffsetSidebar), contentRect.bottom);
+				mDragRect.set((mAlign == LEFT ? contentRect.left
+						- mOffsetSidebar : contentRect.right - mOffsetContent),
+						contentRect.top, (mAlign == LEFT ? contentRect.left
+								+ mOffsetContent : contentRect.right
+								+ mOffsetSidebar), contentRect.bottom);
 			}
-		}else{
+		} else {
 			if ((mAlign & VERTICAL_MASK) > 0) {
-				mDragRect.set(sidebarLeft, (mAlign == TOP ? sidebarBottom
-						- mOffsetSidebar : sidebarTop - mOffsetContent),
-						sidebarRight, (mAlign == TOP ? sidebarBottom + mOffsetContent
-								: sidebarTop + mOffsetSidebar));
+				mDragRect
+						.set(sidebarLeft,
+								(mAlign == TOP ? sidebarBottom - mOffsetSidebar
+										: sidebarTop - mOffsetContent),
+								sidebarRight, (mAlign == TOP ? sidebarBottom
+										+ mOffsetContent : sidebarTop
+										+ mOffsetSidebar));
 			} else {
 				mDragRect.set((mAlign == LEFT ? sidebarRight - mOffsetSidebar
 						: sidebarLeft - mOffsetContent), sidebarTop,
@@ -433,7 +423,8 @@ public class SidebarLayout extends ViewGroup {
 		}
 	}
 
-	private void resolveContentLayout(Rect result, int l, int t, int r, int b, int sidebarSize) {
+	private void resolveContentLayout(Rect result, int l, int t, int r, int b,
+			int sidebarSize) {
 		result.set(l, t, r, b);
 		if (getContentMode() != FIXED) {
 			int offcet = 0;
@@ -442,7 +433,7 @@ public class SidebarLayout extends ViewGroup {
 			} else if (mOpened) {
 				offcet = sidebarSize;
 			}
-			
+
 			if ((mAlign & VERTICAL_MASK) > 0) {
 				result.offset(0, offcet);
 			} else {
@@ -856,16 +847,16 @@ public class SidebarLayout extends ViewGroup {
 		return mSidebarHierarchy;
 	}
 
-	public void setSidebarSizeFraction(float size){
+	public void setSidebarSizeFraction(float size) {
 		mSize = new SizeResolver(size, TypedValue.TYPE_FRACTION);
 		requestLayout();
 	}
 
-	public void setSidebarSizeDimention(float size){
+	public void setSidebarSizeDimention(float size) {
 		mSize = new SizeResolver(size, TypedValue.TYPE_DIMENSION);
 		requestLayout();
 	}
-	
+
 	public void setSidebarHierarchy(int sidebarHierarchy) {
 		if (mSidebarHierarchy != sidebarHierarchy) {
 			mSidebarHierarchy = sidebarHierarchy;
@@ -876,6 +867,13 @@ public class SidebarLayout extends ViewGroup {
 			case UNDER_CONTENT:
 				setContentMode(SLIDE);
 				break;
+			}
+			
+			if (mSidebar != null && mSidebar.view != null && mSidebar.view.getParent() != null) {
+				detachViewFromParent(mSidebar.view);
+				attachViewToParent(mSidebar.view, 
+						(mSidebarHierarchy != sidebarHierarchy) ? 0 : UNKNOWN, 
+						mSidebar.view.getLayoutParams());
 			}
 			requestLayout();
 		}
