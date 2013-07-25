@@ -27,5 +27,6 @@
             <enum name="bottom" value="8" />
         </attr>
         <attr name="attach_to_window" format="boolean"/>
+        <attr name="close_on_sidebar_freespace_tap" format="boolean" />
     </declare-styleable>
 </resources>

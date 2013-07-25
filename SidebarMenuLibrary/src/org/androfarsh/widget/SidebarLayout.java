@@ -192,10 +192,29 @@ public class SidebarLayout extends ViewGroup {
 
 		mContent = resolveReference(a.getResourceId(
 				R.styleable.SidebarLayout_content, UNKNOWN));
+		
+		closeSidebarOnFreespaceTap(a.getBoolean(
+				R.styleable.SidebarLayout_close_on_sidebar_freespace_tap, false));
 
 		a.recycle();
 	}
 
+	public void closeSidebarOnFreespaceTap(boolean enabled){
+		if (enabled){
+			mSidebar.view.setOnClickListener(new OnClickListener() {
+				
+				@Override
+				public void onClick(View v) {
+					if (isOpened()){
+						closeSidebar();
+					}
+				}
+			});
+		} else {
+			mSidebar.view.setOnClickListener(null);
+		}
+	}
+	
 	private void attachSidebarToWindow(Activity activity) {
 		// get the window background
 		TypedArray a = activity.getTheme().obtainStyledAttributes(

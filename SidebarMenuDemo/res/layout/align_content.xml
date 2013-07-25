@@ -62,6 +62,14 @@
         android:text="@string/register_sidebar_listener"
         />
     
+     <CheckBox 
+        android:id="@+id/sidebar_close_on_freespace"
+        android:layout_below="@+id/sidebar_listener"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/close_sidebar_on_freespace_tap"
+        />
+    
     <Button
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

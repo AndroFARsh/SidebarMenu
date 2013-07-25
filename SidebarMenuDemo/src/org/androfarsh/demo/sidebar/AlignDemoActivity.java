@@ -133,6 +133,15 @@ public class AlignDemoActivity extends BaseDemoActivity {
 				mRoot.setListener(isChecked ? mSidebarListener : null);
 			}
 		});
+		
+		final CheckBox sidebarOnFreespace = (CheckBox)findViewById(R.id.sidebar_close_on_freespace);
+		sidebarOnFreespace.setOnCheckedChangeListener(new OnCheckedChangeListener() {
+			
+			@Override
+			public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+				mRoot.closeSidebarOnFreespaceTap(isChecked);
+			}
+		});
 	}
 
 	private void updateSidebarSize(final TextView sidebarSizeTitle,

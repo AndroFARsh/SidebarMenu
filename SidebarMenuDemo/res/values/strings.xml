@@ -42,5 +42,6 @@
     <string name="sidebar_opened">Sidebar Opened</string>
     <string name="sidebar_closed">Sidebar Closed</string>
     <string name="register_sidebar_listener">Register Sidebar Listener</string>
+    <string name="close_sidebar_on_freespace_tap">Close Sidebar on free space tap</string>
 
 </resources>
