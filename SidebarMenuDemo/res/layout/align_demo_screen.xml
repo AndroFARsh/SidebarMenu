@@ -4,7 +4,8 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     app:content="@+id/content"
-    app:sidebar="@+id/sidebar" >
+    app:sidebar="@+id/sidebar"
+    app:attach_to_window="true">
 
     <ViewSwitcher
         android:id="@+id/sidebar"

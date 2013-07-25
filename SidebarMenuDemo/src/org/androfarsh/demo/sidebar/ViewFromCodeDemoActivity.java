@@ -33,9 +33,13 @@ public class ViewFromCodeDemoActivity extends BaseDemoActivity {
 		super.onCreate(savedInstanceState);
 		enableHome();
 		
-		mRoot = new SidebarLayout(this, R.layout.sidebar, R.layout.content);
-		mSidebar = (ListView) mRoot.findViewById(R.id.sidebar);
-		mContent = (ImageView) mRoot.findViewById(R.id.content);
+		mRoot = new SidebarLayout(this);
+		
+		mSidebar = (ListView) getLayoutInflater().inflate(R.layout.sidebar, mRoot, false); 
+		mContent = (ImageView) getLayoutInflater().inflate(R.layout.content, mRoot, false);
+		
+		mRoot.setSidebar(mSidebar);
+		mRoot.setContent(mContent);
 		
 		mSidebar.setAdapter(new SidebarAdapter());
 		mSidebar.setOnItemClickListener(new OnItemClickListener() {

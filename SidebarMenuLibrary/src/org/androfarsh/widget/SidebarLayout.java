@@ -18,7 +18,9 @@ package org.androfarsh.widget;
 import java.util.ArrayList;
 import java.util.List;
 
+import android.app.Activity;
 import android.content.Context;
+import android.content.res.Resources.NotFoundException;
 import android.content.res.TypedArray;
 import android.graphics.Canvas;
 import android.graphics.Paint;
@@ -32,6 +34,7 @@ import android.view.ViewGroup;
 import android.view.animation.AnimationUtils;
 import android.view.animation.Interpolator;
 import android.view.animation.LinearInterpolator;
+import android.widget.FrameLayout;
 
 import com.nineoldandroids.animation.Animator;
 import com.nineoldandroids.animation.Animator.AnimatorListener;
@@ -40,6 +43,7 @@ import com.nineoldandroids.animation.ObjectAnimator;
 
 public class SidebarLayout extends ViewGroup {
 	private static final String RES_TYPE_LAYOUT = "layout";
+	private static final String RES_TYPE_ID = "id";
 	private static final int SNAP_VELOCITY = 1000;
 	private static final int OFFSET = 50;
 
@@ -91,8 +95,8 @@ public class SidebarLayout extends ViewGroup {
 	private int mAlign = LEFT;
 	private SizeResolver mSize = new SizeResolver(SIDEBAR_SIZE,
 			TypedValue.TYPE_FRACTION);
-	private int mOffsetContent = OFFSET;
-	private int mOffsetSidebar = 0;
+	private int mOffsetContent = OFFSET / 2;
+	private int mOffsetSidebar = OFFSET;
 	private boolean mDebugMode;
 	private float mMaximumFlingVelocity = 2 * SNAP_VELOCITY;
 
@@ -101,9 +105,14 @@ public class SidebarLayout extends ViewGroup {
 	private int mSidebarHierarchy = UNDER_CONTENT;
 
 	private boolean mInitialized;
+	private boolean mAttachToWindow;
 
 	static class ViewHolder {
-		private View view;
+		public ViewHolder(Context context) {
+			view = new FrameLayout(context);
+		}
+
+		private final FrameLayout view;
 		private int id = View.NO_ID;
 	}
 
@@ -125,6 +134,10 @@ public class SidebarLayout extends ViewGroup {
 		}
 	}
 
+	public SidebarLayout(Context context) {
+		this(context, UNKNOWN, UNKNOWN);	
+	}
+	
 	public SidebarLayout(Context context, int sidebarLayoutRes,
 			int contentLayoutRes) {
 		super(context);
@@ -164,6 +177,8 @@ public class SidebarLayout extends ViewGroup {
 		mAlign = a.getInt(R.styleable.SidebarLayout_sidebar_align, LEFT);
 
 		mDebugMode = a.getBoolean(R.styleable.SidebarLayout_debug_mode, false);
+		
+		mAttachToWindow = a.getBoolean(R.styleable.SidebarLayout_attach_to_window, false);
 
 		final int interpolatorId = a.getResourceId(
 				R.styleable.SidebarLayout_android_interpolator, UNKNOWN);
@@ -181,22 +196,52 @@ public class SidebarLayout extends ViewGroup {
 		a.recycle();
 	}
 
-	private ViewHolder resolveReference(final int ref) {
-		if (ref == UNKNOWN) {
-			return null;
-		}
+	private void attachSidebarToWindow(Activity activity) {
+		// get the window background
+		TypedArray a = activity.getTheme().obtainStyledAttributes(
+				new int[] { android.R.attr.windowBackground });
+		int background = a.getResourceId(0, 0);
+		a.recycle();
 
-		final ViewHolder viewHolder = new ViewHolder();
-		if (RES_TYPE_LAYOUT.equals(getResources().getResourceTypeName(ref))) {
-			viewHolder.view = View.inflate(getContext(), ref, null);
-			viewHolder.id = viewHolder.view.getId();
-			if (viewHolder.id == View.NO_ID) {
-				viewHolder.id = viewHolder.view.hashCode();
-				viewHolder.view.setId(viewHolder.id);
-			}
-		} else {
-			viewHolder.id = ref;
+		ViewGroup decor = (ViewGroup) activity.getWindow().getDecorView();
+		ViewGroup decorChild = (ViewGroup) decor.getChildAt(0);
+			
+		if (this == decorChild){
+			return;
 		}
+			
+		if (getParent() != null){
+			((ViewGroup)getParent()).removeView(this);
+		}
+			
+		// save ActionBar themes that have transparent assets
+		decorChild.setBackgroundResource(background);
+		decor.removeView(decorChild);
+		decor.addView(this);
+			
+		View content = getContent();
+		setContent(decorChild);
+			
+		activity.setContentView(content);
+	}
+	
+	private ViewHolder resolveReference(final int ref) {
+		final ViewHolder viewHolder = new ViewHolder(getContext());
+		super.addView(viewHolder.view, UNKNOWN, generateDefaultLayoutParams());
+		
+		try {
+			if (RES_TYPE_LAYOUT.equals(getResources().getResourceTypeName(ref))) {
+				final View view =  View.inflate(getContext(), ref, null);
+				viewHolder.view.addView(view);
+				viewHolder.id = view.getId();
+				if (viewHolder.id == View.NO_ID) {
+					viewHolder.id = viewHolder.view.hashCode();
+					viewHolder.view.setId(viewHolder.id);
+				}
+			} else if (RES_TYPE_ID.equals(getResources().getResourceTypeName(ref))) {
+				viewHolder.id = ref;
+			}
+		} catch (NotFoundException e){}
 		return viewHolder;
 	}
 
@@ -222,7 +267,7 @@ public class SidebarLayout extends ViewGroup {
 	@Override
 	public void onFinishInflate() {
 		super.onFinishInflate();
-
+		
 		init();
 	}
 
@@ -238,18 +283,21 @@ public class SidebarLayout extends ViewGroup {
 		if (mContent == null) {
 			throw new NullPointerException("no content view");
 		}
-
-		if (mSidebarHierarchy == UNDER_CONTENT){
-			super.addView(mSidebar.view, UNKNOWN, generateDefaultLayoutParams());
-			super.addView(mContent.view, UNKNOWN, generateDefaultLayoutParams());
-		}else {
-			super.addView(mContent.view, UNKNOWN, generateDefaultLayoutParams());
-			super.addView(mSidebar.view, UNKNOWN, generateDefaultLayoutParams());
-		}
-	
+			
 		mOpenListener = new OpenListener();
 		mCloseListener = new CloseListener();
+		
+		resolveChildViewAttach();
 		mInitialized = true;
+	}
+	
+	@Override
+	protected void onAttachedToWindow() {
+		super.onAttachedToWindow();
+		
+		if (mAttachToWindow && (getContext() instanceof Activity)){
+			attachSidebarToWindow((Activity)getContext());
+		}
 	}
 
 	@Override
@@ -446,11 +494,12 @@ public class SidebarLayout extends ViewGroup {
 	public void onMeasure(int w, int h) {
 		super.onMeasure(w, h);
 		super.measureChildren(w, h);
+		
 		mSidebarWidth = mSidebar.view.getMeasuredWidth();
 		mSidebarHeight = mSidebar.view.getMeasuredHeight();
-
+	
 		mToggle = (int) (mToggleFactor * ((mAlign & VERTICAL_MASK) > 0 ? mSidebarHeight
-				: mSidebarWidth));
+					: mSidebarWidth));
 	}
 
 	@Override
@@ -466,7 +515,7 @@ public class SidebarLayout extends ViewGroup {
 
 	@Override
 	protected void measureChild(View child, int parentWSpec, int parentHSpec) {
-		if ((mSidebar != null) && (child == mSidebar.view)) {
+		if (child == mSidebar.view) {
 			final int widthMeasureSpec;
 			final int heightMeasureSpec;
 			if ((mAlign & VERTICAL_MASK) > 0) {
@@ -714,27 +763,18 @@ public class SidebarLayout extends ViewGroup {
 		final int id = child.getId();
 		if (id != View.NO_ID) {
 			if ((mSidebar != null) && (mSidebar.id == id)) {
-				mSidebar.view = detachOldView(mSidebar.view, child, params);
+				mSidebar.view.removeAllViews(); 
+				mSidebar.view.addView(child);
 				return;
 			}
 
 			if ((mContent != null) && (mContent.id == id)) {
-				mContent.view = detachOldView(mContent.view, child, params);
+				mContent.view.removeAllViews(); 
+				mContent.view.addView(child);
 				return;
 			}
 		}
 		throw new UnsupportedOperationException();
-	}
-
-	private View detachOldView(View oldView, View newView, LayoutParams params) {
-		if ((oldView != null) && (oldView.getParent() != null)) {
-			final ViewGroup parent = ((ViewGroup) oldView.getParent());
-			final int newIndex = parent.indexOfChild(oldView);
-
-			parent.removeView(oldView);
-			parent.addView(newView, newIndex, params);
-		}
-		return newView;
 	}
 
 	@Override
@@ -878,6 +918,37 @@ public class SidebarLayout extends ViewGroup {
 			requestLayout();
 		}
 	}
+	
+	private void attachChildView(ViewHolder holder, View newView) {
+		holder.view.removeAllViews();
+		if (newView != null){
+			if (newView.getId() == NO_ID){
+				if (holder.id == NO_ID){
+					holder.id = newView.hashCode();
+				}
+				newView.setId(holder.id);				
+			} else {
+				holder.id = newView.getId();
+			}
+			holder.view.addView(newView);
+		}
+	}
+	
+	public View getContent(){
+		return mContent.view.getChildAt(0);
+	}
+	
+	public void setContent(View view){
+		attachChildView(mContent,view);
+	}
+	
+	public View getSidebar(){
+		return mSidebar.view.getChildAt(0);
+	}
+	
+	public void setSidebar(View view){
+		attachChildView(mSidebar,view);
+	}
 
 	class OpenListener implements AnimatorListener {
 
@@ -908,6 +979,34 @@ public class SidebarLayout extends ViewGroup {
 		}
 	}
 
+	private void resolveChildViewAttach(){
+		if (mContent != null &&
+			mContent.view != null &&
+		 	mContent.view.getParent() != this &&
+		 	mSidebar != null &&
+		 	mSidebar.view != null &&
+		 	mSidebar.view.getParent() != this){
+			throw new RuntimeException();
+		}
+		
+		detachViewFromParent(mContent.view);
+		detachViewFromParent(mSidebar.view);
+		
+		switch (mSidebarHierarchy) {
+		case OVER_CONTENT:
+			attachViewToParent(mContent.view, 0, generateDefaultLayoutParams());
+			attachViewToParent(mSidebar.view, 1, generateDefaultLayoutParams());
+			break;
+		case UNDER_CONTENT:
+			attachViewToParent(mSidebar.view, 0, generateDefaultLayoutParams());
+			attachViewToParent(mContent.view, 1, generateDefaultLayoutParams());
+			break;
+		default:
+			throw new UnsupportedOperationException();
+		}
+		
+	}
+	
 	class CloseListener implements AnimatorListener {
 
 		@Override

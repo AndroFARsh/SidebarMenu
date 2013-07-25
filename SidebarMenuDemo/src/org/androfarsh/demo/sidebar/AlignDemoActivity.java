@@ -19,7 +19,6 @@ import android.view.animation.LinearInterpolator;
 import android.view.animation.OvershootInterpolator;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemSelectedListener;
-import android.widget.ArrayAdapter;
 import android.widget.BaseAdapter;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
@@ -75,9 +74,6 @@ public class AlignDemoActivity extends BaseDemoActivity {
 		});
 
 		final Spinner align = (Spinner) findViewById(R.id.align);
-		final ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this, R.array.align, android.R.layout.simple_spinner_item);
-		adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-		align.setAdapter(adapter);
 		align.setOnItemSelectedListener(new OnItemSelectedListener() {
 
 			@Override
@@ -138,7 +134,7 @@ public class AlignDemoActivity extends BaseDemoActivity {
 			}
 		});
 	}
-	
+
 	private void updateSidebarSize(final TextView sidebarSizeTitle,
 			SeekBar seekBar) {
 		mRoot.setSidebarSizeFraction(seekBar.getProgress() * 0.01f);

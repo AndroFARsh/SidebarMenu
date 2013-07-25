@@ -1,10 +1,10 @@
 <resources>
+
     <string name="demo_title_pattern" formatted="false">%s - %s</string>
     <string name="app_name">SidebarMenu</string>
     <string name="simple_demo_name">Simple Demo</string>
     <string name="git_repository">Git Repository</string>
     <string name="empty"></string>
-    
     <string name="wp0">Wallpaper 1</string>
     <string name="wp1">Wallpaper 2</string>
     <string name="wp2">Wallpaper 3</string>
@@ -15,6 +15,7 @@
     <string name="view_from_code_demo_name">View From Code Demo</string>
     <string name="align_demo_name">Align Demo</string>
     <string name="align">"Align: "</string>
+    <string name="attach_type">"Attach Type: "</string>
     <string name="interpolator">"Interpolator: "</string>
     <string name="sidebar_size_pattern" formatted="false">"Sidebar size (%d%%): "</string>
     <string name="toggle_sidebar">Toggle Sidebar</string>
@@ -22,15 +23,24 @@
     <string name="left">Left</string>
     <string name="top">Top</string>
     <string name="bottom">Bottom</string>
-    
+    <string name="attach_content">Content</string>
+    <string name="attach_window">Window</string>
+
     <string-array name="align">
         <item>@string/left</item>
         <item>@string/top</item>
         <item>@string/right</item>
         <item>@string/bottom</item>
     </string-array>
-        <string name="sidebar_opened">Sidebar Opened</string>
-        <string name="sidebar_closed">Sidebar Closed</string>
-        <string name="register_sidebar_listener">Register Sidebar Listener</string>
+
+    <string-array name="attach_type">
+        <item>@string/attach_content</item>
+        <item>@string/attach_window</item>
+    </string-array>
     
+    
+    <string name="sidebar_opened">Sidebar Opened</string>
+    <string name="sidebar_closed">Sidebar Closed</string>
+    <string name="register_sidebar_listener">Register Sidebar Listener</string>
+
 </resources>

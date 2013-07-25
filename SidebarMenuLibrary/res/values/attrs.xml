@@ -26,5 +26,6 @@
             <enum name="right" value="2" />
             <enum name="bottom" value="8" />
         </attr>
+        <attr name="attach_to_window" format="boolean"/>
     </declare-styleable>
 </resources>
