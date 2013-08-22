@@ -15,10 +15,16 @@
             <enum name="under_content" value="0" />
             <enum name="over_content" value="1" />
         </attr>
-        <attr name="sidebar_size" format="dimension|fraction" />
-        <attr name="toggle_coefficient" format="fraction" />
+        <attr name="sidebar_size" format="dimension|fraction" >
+            <enum name="fill_parrent" value="-1" />
+            <enum name="match_parrent" value="-1" />
+            <enum name="wrap_content" value="-2" />
+        </attr>
+        <attr name="sidebar_offset" format="dimension|fraction" />
+        <attr name="toggle_factor" format="fraction" />
         <attr name="sidebar" format="reference" />
         <attr name="content" format="reference" />
+        <attr name="allow_drag" format="boolean" />
         <attr name="debug_mode" format="boolean" />
         <attr name="sidebar_align">
             <enum name="left" value="1" />

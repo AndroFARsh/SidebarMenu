@@ -125,6 +125,28 @@ public class AlignDemoActivity extends BaseDemoActivity {
 		});
 		updateSidebarSize(sidebarSizeTitle, sidebarSize);
 		
+		final TextView sidebarOffsetTitle = (TextView)findViewById(R.id.sidebar_offset_title);
+		final SeekBar sidebarOffset = (SeekBar)findViewById(R.id.sidebar_offset);
+		sidebarOffset.setOnSeekBarChangeListener(new OnSeekBarChangeListener() {
+			
+			@Override
+			public void onStopTrackingTouch(SeekBar seekBar) {
+				updateSidebarOffset(sidebarOffsetTitle, seekBar);
+			}
+			
+			@Override
+			public void onStartTrackingTouch(SeekBar seekBar) {
+			}
+			
+			@Override
+			public void onProgressChanged(SeekBar seekBar, int progress,
+					boolean fromUser) {
+				sidebarOffsetTitle.setText(getString(R.string.sidebar_offset_pattern, progress));
+			}
+		});
+		updateSidebarOffset(sidebarOffsetTitle, sidebarOffset);
+		
+		
 		final CheckBox sidebarListener = (CheckBox)findViewById(R.id.sidebar_listener);
 		sidebarListener.setOnCheckedChangeListener(new OnCheckedChangeListener() {
 			
@@ -135,21 +157,38 @@ public class AlignDemoActivity extends BaseDemoActivity {
 		});
 		
 		final CheckBox sidebarOnFreespace = (CheckBox)findViewById(R.id.sidebar_close_on_freespace);
+		sidebarOnFreespace.setChecked(mRoot.isCloseOnFreespaceTap());
 		sidebarOnFreespace.setOnCheckedChangeListener(new OnCheckedChangeListener() {
 			
 			@Override
 			public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-				mRoot.closeSidebarOnFreespaceTap(isChecked);
+				mRoot.setCloseOnFreeSpaceTap(isChecked);
+			}
+		});
+		
+		final CheckBox sidebarDragToOpen = (CheckBox)findViewById(R.id.sidebar_allow_drag);
+		sidebarDragToOpen.setChecked(mRoot.isAllowDrag());
+		sidebarDragToOpen.setOnCheckedChangeListener(new OnCheckedChangeListener() {
+			
+			@Override
+			public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+				mRoot.setAllowDrag(isChecked);
 			}
 		});
 	}
 
-	private void updateSidebarSize(final TextView sidebarSizeTitle,
+	private void updateSidebarSize(final TextView sidebarTitle,
 			SeekBar seekBar) {
 		mRoot.setSidebarSizeFraction(seekBar.getProgress() * 0.01f);
-		sidebarSizeTitle.setText(getString(R.string.sidebar_size_pattern, seekBar.getProgress()));
+		sidebarTitle.setText(getString(R.string.sidebar_size_pattern, seekBar.getProgress()));
 	}
 
+	private void updateSidebarOffset(final TextView sidebarTitle,
+			SeekBar seekBar) {
+		mRoot.setSidebarOffsetFraction(seekBar.getProgress() * 0.01f);
+		sidebarTitle.setText(getString(R.string.sidebar_offset_pattern, seekBar.getProgress()));
+	}
+	
 	@Override
 	protected SidebarLayout getSidebar() {
 		return mRoot;

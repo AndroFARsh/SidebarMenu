@@ -18,6 +18,7 @@
     <string name="attach_type">"Attach Type: "</string>
     <string name="interpolator">"Interpolator: "</string>
     <string name="sidebar_size_pattern" formatted="false">"Sidebar size (%d%%): "</string>
+    <string name="sidebar_offset_pattern" formatted="false">"Sidebar offset (%d%%): "</string>
     <string name="toggle_sidebar">Toggle Sidebar</string>
     <string name="right">Right</string>
     <string name="left">Left</string>
@@ -43,5 +44,6 @@
     <string name="sidebar_closed">Sidebar Closed</string>
     <string name="register_sidebar_listener">Register Sidebar Listener</string>
     <string name="close_sidebar_on_freespace_tap">Close Sidebar on free space tap</string>
+    <string name="allow_drag_to_open">Allow drag to open</string>
 
 </resources>

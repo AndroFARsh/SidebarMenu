@@ -1,76 +1,108 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:background="@android:color/white"
-    android:padding="10dp" >
-    
-    <TextView
-        android:id="@+id/align_title"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignTop="@+id/align"
-        android:layout_alignBottom="@+id/align"
-        android:gravity="center"
-        android:text="@string/align" />
+    android:background="@android:color/white" >
 
-    <Spinner
-        android:id="@+id/align"
-        android:layout_toRightOf="@+id/align_title"
+    <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:entries="@array/align"
-        android:layout_marginBottom="10dp" />
+        android:layout_height="match_parent"
+        android:layout_above="@+id/toggle_button" >
 
-     <TextView
-        android:id="@+id/interpolator_title"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignTop="@+id/interpolator"
-        android:layout_alignBottom="@+id/interpolator"
-        android:gravity="center"
-        android:text="@string/interpolator" />
-    
-    <Spinner
-        android:id="@+id/interpolator"
-        android:layout_toRightOf="@+id/interpolator_title"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_below="@+id/align"
-        android:layout_marginBottom="10dp" />
-    
-    <TextView
-        android:id="@+id/sidebar_size_title"
-        android:layout_below="@+id/interpolator"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:gravity="center"/>
-    
-    <SeekBar
-        android:id="@+id/sidebar_size"
-        android:layout_below="@+id/sidebar_size_title"
-        android:progress="80"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="10dp"/>
-    
-    <CheckBox 
-        android:id="@+id/sidebar_listener"
-        android:layout_below="@+id/sidebar_size"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="@string/register_sidebar_listener"
-        />
-    
-     <CheckBox 
-        android:id="@+id/sidebar_close_on_freespace"
-        android:layout_below="@+id/sidebar_listener"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="@string/close_sidebar_on_freespace_tap"
-        />
-    
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="10dp" >
+
+            <TextView
+                android:id="@+id/align_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignBottom="@+id/align"
+                android:layout_alignTop="@+id/align"
+                android:gravity="center"
+                android:text="@string/align" />
+
+            <Spinner
+                android:id="@+id/align"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="10dp"
+                android:layout_toRightOf="@+id/align_title"
+                android:entries="@array/align" />
+
+            <TextView
+                android:id="@+id/interpolator_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignBottom="@+id/interpolator"
+                android:layout_alignTop="@+id/interpolator"
+                android:gravity="center"
+                android:text="@string/interpolator" />
+
+            <Spinner
+                android:id="@+id/interpolator"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_below="@+id/align"
+                android:layout_marginBottom="10dp"
+                android:layout_toRightOf="@+id/interpolator_title" />
+
+            <TextView
+                android:id="@+id/sidebar_size_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_below="@+id/interpolator"
+                android:gravity="center" />
+
+            <SeekBar
+                android:id="@+id/sidebar_size"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_below="@+id/sidebar_size_title"
+                android:layout_marginBottom="10dp"
+                android:progress="80" />
+
+            <TextView
+                android:id="@+id/sidebar_offset_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_below="@+id/sidebar_size"
+                android:gravity="center" />
+
+            <SeekBar
+                android:id="@+id/sidebar_offset"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_below="@+id/sidebar_offset_title"
+                android:layout_marginBottom="10dp"
+                android:progress="0" />
+
+            <CheckBox
+                android:id="@+id/sidebar_listener"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_below="@+id/sidebar_offset"
+                android:text="@string/register_sidebar_listener" />
+
+            <CheckBox
+                android:id="@+id/sidebar_close_on_freespace"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_below="@+id/sidebar_listener"
+                android:text="@string/close_sidebar_on_freespace_tap" />
+
+            <CheckBox
+                android:id="@+id/sidebar_allow_drag"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_below="@+id/sidebar_close_on_freespace"
+                android:text="@string/allow_drag_to_open" />
+        </RelativeLayout>
+    </ScrollView>
+
     <Button
+        android:id="@+id/toggle_button"
+        android:layout_margin="10dp"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
