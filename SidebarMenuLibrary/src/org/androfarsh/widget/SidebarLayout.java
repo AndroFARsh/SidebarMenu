@@ -23,6 +23,7 @@ import android.content.Context;
 import android.content.res.Resources.NotFoundException;
 import android.content.res.TypedArray;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.util.AttributeSet;
@@ -98,8 +99,8 @@ public class SidebarLayout extends ViewGroup {
 			TypedValue.TYPE_DIMENSION);
 	private SizeResolver mSizeResolver = new SizeResolver(SIDEBAR_SIZE,
 			TypedValue.TYPE_FRACTION);
-	private int mOffsetContent = OFFSET / 2;
-	private int mOffsetSidebar = OFFSET;
+	private int mOffsetContent = OFFSET;
+	private int mOffsetSidebar;
 	private boolean mDebugMode;
 	private float mMaximumFlingVelocity = 2 * SNAP_VELOCITY;
 
@@ -117,6 +118,7 @@ public class SidebarLayout extends ViewGroup {
 	static class ViewHolder {
 		public ViewHolder(Context context) {
 			view = new FrameLayout(context);
+			view.setBackgroundColor(Color.TRANSPARENT);
 		}
 
 		private final FrameLayout view;
@@ -199,13 +201,6 @@ public class SidebarLayout extends ViewGroup {
 		mDuration = a.getInt(R.styleable.SidebarLayout_android_duration,
 				DURATION);
 
-		setSidebarHierarchy(a.getInt(
-				R.styleable.SidebarLayout_sidebar_hierarchy, UNDER_CONTENT));
-
-		setSidebarMode(a.getInt(R.styleable.SidebarLayout_sidebar_mode, FIXED));
-
-		setContentMode(a.getInt(R.styleable.SidebarLayout_content_mode, SLIDE));
-
 		mAlign = a.getInt(R.styleable.SidebarLayout_sidebar_align, LEFT);
 
 		mDebugMode = a.getBoolean(R.styleable.SidebarLayout_debug_mode, false);
@@ -229,7 +224,13 @@ public class SidebarLayout extends ViewGroup {
 		
 		setCloseOnFreeSpaceTap(a.getBoolean(
 				R.styleable.SidebarLayout_close_on_sidebar_freespace_tap, false));
+		
+		setSidebarHierarchy(a.getInt(R.styleable.SidebarLayout_sidebar_hierarchy, UNDER_CONTENT));
+		
+		setSidebarMode(a.getInt(R.styleable.SidebarLayout_sidebar_mode, FIXED));
 
+		setContentMode(a.getInt(R.styleable.SidebarLayout_content_mode, SLIDE));
+		
 		a.recycle();
 	}
 
@@ -404,7 +405,7 @@ public class SidebarLayout extends ViewGroup {
 			if (getSidebarMode() == FIXED) {
 				mSidebarRect.offsetTo(width - mSidebarWidth, 0);
 			} else {
-				mSidebarRect.offsetTo(0, mContentRect.right);
+				mSidebarRect.offsetTo(mContentRect.right, 0);
 			}
 			
 			break;
@@ -414,8 +415,10 @@ public class SidebarLayout extends ViewGroup {
 			resolveContentLayout(mContentRect, mSidebarWidth - mOffset);
 			if (getSidebarMode() == FIXED) {
 				mSidebarRect.offsetTo(0, 0);
-			} else {
+			} else if (getContentMode() != FIXED) {
 				mSidebarRect.offsetTo(mContentRect.left - mSidebarWidth, 0);
+			} else {
+				resolveSidebarLayout(mSidebarRect, mSidebarWidth - mOffset);
 			}
 			break;
 		}
@@ -466,6 +469,24 @@ public class SidebarLayout extends ViewGroup {
 		}
 	}
 
+	private void resolveSidebarLayout(Rect result,
+			int sidebarSize) {
+		if (getSidebarMode() != FIXED) {
+			int offcet = -sidebarSize;
+			if (mSliding) {
+				offcet = -(sidebarSize - Math.abs(mDelta));
+			} else if (mOpened) {
+				offcet = 0;
+			}
+
+			if ((mAlign & VERTICAL_MASK) > 0) {
+				result.offset(0, offcet);
+			} else {
+				result.offset(offcet, 0);
+			}
+		}
+	}
+	
 	private void resolveContentLayout(Rect result,
 			int sidebarSize) {
 		if (getContentMode() != FIXED) {
@@ -927,7 +948,7 @@ public class SidebarLayout extends ViewGroup {
 			if (mSidebar != null && mSidebar.view != null && mSidebar.view.getParent() != null) {
 				detachViewFromParent(mSidebar.view);
 				attachViewToParent(mSidebar.view, 
-						(mSidebarHierarchy != sidebarHierarchy) ? 0 : UNKNOWN, 
+						(mSidebarHierarchy == UNDER_CONTENT) ? 0 : UNKNOWN, 
 						mSidebar.view.getLayoutParams());
 			}
 			requestLayout();
@@ -1028,6 +1049,24 @@ public class SidebarLayout extends ViewGroup {
 
 	public void setAllowDrag(boolean mAllowDrag) {
 		this.mAllowDrag = mAllowDrag;
+	}
+
+	public int getOffsetContent() {
+		return mOffsetContent;
+	}
+
+	public void setOffsetContent(int offsetContent) {
+		mOffsetContent = offsetContent;
+		requestLayout();
+	}
+
+	public int getOffsetSidebar() {
+		return mOffsetSidebar;
+	}
+
+	public void setOffsetSidebar(int offsetSidebar) {
+		mOffsetSidebar = offsetSidebar;
+		requestLayout();
 	}
 
 	class CloseListener implements AnimatorListener {
