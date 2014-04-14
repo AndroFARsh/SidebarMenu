@@ -22,10 +22,12 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.res.Resources.NotFoundException;
 import android.content.res.TypedArray;
+import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
+import android.graphics.drawable.BitmapDrawable;
 import android.util.AttributeSet;
 import android.util.TypedValue;
 import android.view.MotionEvent;
@@ -70,7 +72,7 @@ public class SidebarLayout extends ViewGroup {
 
 	private boolean mOpened;
 
-	private boolean mAnimated;
+	private boolean mToggling;
 
 	private int mDuration = DURATION;
 	private Interpolator mInterpolator = new LinearInterpolator();
@@ -121,8 +123,33 @@ public class SidebarLayout extends ViewGroup {
 			view.setBackgroundColor(Color.TRANSPARENT);
 		}
 
-		private final FrameLayout view;
-		private int id = View.NO_ID;
+		final FrameLayout view;
+		int id = View.NO_ID;
+		BitmapDrawable viewDrawable;
+		
+		@SuppressWarnings("deprecation")
+		void createDrawingCache() {
+			BitmapDrawable drawable = null;
+			view.buildDrawingCache();
+			final Bitmap bitmap = view.getDrawingCache();
+			if (bitmap != null) {
+				drawable = new BitmapDrawable(Bitmap.createBitmap(bitmap));
+				bitmap.recycle();
+			}
+			view.destroyDrawingCache();
+			
+			if (viewDrawable != null && viewDrawable.getBitmap() != null){
+				viewDrawable.getBitmap().recycle();
+			}
+			viewDrawable = drawable;
+		}
+		
+		void recycleDrawingCache() {
+			if (viewDrawable != null && viewDrawable.getBitmap() != null){
+				viewDrawable.getBitmap().recycle();
+			}
+			viewDrawable = null;
+		}
 	}
 
 	static class SizeResolver {
@@ -208,7 +235,7 @@ public class SidebarLayout extends ViewGroup {
 		mAllowDrag = a.getBoolean(R.styleable.SidebarLayout_allow_drag, true);
 		
 		mAttachToWindow = a.getBoolean(R.styleable.SidebarLayout_attach_to_window, false);
-
+		
 		final int interpolatorId = a.getResourceId(
 				R.styleable.SidebarLayout_android_interpolator, UNKNOWN);
 		if (interpolatorId != UNKNOWN) {
@@ -530,6 +557,33 @@ public class SidebarLayout extends ViewGroup {
 			canvas.drawRect(mDragRect, paint);
 		}
 	}
+	
+	@Override
+	protected boolean drawChild(Canvas canvas, View child, long drawingTime) {
+		if (child == mContent.view && mOpened && !mSliding && !mToggling) {
+			return drawChildDrawable(mContent, mContentRect, canvas);
+		} else {
+			return super.drawChild(canvas, child, drawingTime);
+		}
+	}
+
+	private boolean drawChildDrawable(ViewHolder holder, Rect rect, Canvas canvas) {
+		final int saveCount = canvas.getSaveCount();
+		canvas.save();
+
+		if ((holder.viewDrawable == null) || holder.viewDrawable.getBitmap().isRecycled()) {
+			holder.createDrawingCache();
+		}
+		
+		canvas.clipRect(rect);
+		
+		holder.viewDrawable.setBounds(rect);
+		holder.viewDrawable.draw(canvas);
+
+		canvas.restoreToCount(saveCount);
+		postInvalidate();
+		return true;
+	}
 
 	@Override
 	protected void measureChild(View child, int parentWSpec, int parentHSpec) {
@@ -574,6 +628,7 @@ public class SidebarLayout extends ViewGroup {
 		case MotionEvent.ACTION_DOWN:
 			if (!mSliding && mDragRect.contains(x, y)) {
 				mSliding = true;
+				
 				mPrevX = x;
 				mPrevY = y;
 
@@ -686,10 +741,10 @@ public class SidebarLayout extends ViewGroup {
 	}
 
 	private void toggleSidebar(int from, float velocity, boolean toggled) {
-		if (mAnimated) {
+		if (mToggling) {
 			return;
 		}
-
+		
 		final int sidebarSize = getSidebarSizeWithOutOffset();
 
 		final boolean rbAlign = (mAlign & RIGHT_BOTTOM_MASK) > 0;
@@ -721,7 +776,7 @@ public class SidebarLayout extends ViewGroup {
 		if (from == 0) {
 			listener.onAnimationEnd(null);
 		} else {
-			mAnimated = true;
+			mToggling = true;
 			requestLayout();
 
 			final int duration = (int) (this.mDuration * (Math.abs(from) / (float) sidebarSize));
@@ -998,7 +1053,7 @@ public class SidebarLayout extends ViewGroup {
 
 		@Override
 		public void onAnimationEnd(Animator animation) {
-			mAnimated = false;
+			mToggling = false;
 			mOpened = true;
 			mDelta = 0;
 
@@ -1081,10 +1136,12 @@ public class SidebarLayout extends ViewGroup {
 
 		@Override
 		public void onAnimationEnd(Animator animation) {
-			mAnimated = false;
+			mToggling = false;
 			mOpened = false;
 			mDelta = 0;
 
+			mContent.recycleDrawingCache();
+			
 			requestLayout();
 			invalidate();
 			if (mSidebarListener != null) {
