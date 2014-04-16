@@ -574,18 +574,16 @@ public class SidebarLayout extends ViewGroup {
 	private boolean drawChildDrawable(ViewHolder holder, Rect rect, Canvas canvas) {
 		final int saveCount = canvas.getSaveCount();
 		canvas.save();
+		canvas.clipRect(rect);
 
 		if ((holder.viewDrawable == null) || holder.viewDrawable.getBitmap().isRecycled()) {
 			holder.createDrawingCache();
 		}
 		
-		canvas.clipRect(rect);
-		
 		holder.viewDrawable.setBounds(rect);
 		holder.viewDrawable.draw(canvas);
 
 		canvas.restoreToCount(saveCount);
-		postInvalidate();
 		return true;
 	}
 
