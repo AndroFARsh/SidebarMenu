@@ -21,6 +21,8 @@
             <enum name="wrap_content" value="-2" />
         </attr>
         <attr name="sidebar_offset" format="dimension|fraction" />
+        <attr name="drag_sidebar_offset" format="dimension" />
+        <attr name="drag_content_offset" format="dimension" />
         <attr name="toggle_factor" format="fraction" />
         <attr name="sidebar" format="reference" />
         <attr name="content" format="reference" />

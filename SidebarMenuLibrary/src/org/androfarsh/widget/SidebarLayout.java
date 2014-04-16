@@ -101,8 +101,8 @@ public class SidebarLayout extends ViewGroup {
 			TypedValue.TYPE_DIMENSION);
 	private SizeResolver mSizeResolver = new SizeResolver(SIDEBAR_SIZE,
 			TypedValue.TYPE_FRACTION);
-	private int mOffsetContent = OFFSET;
-	private int mOffsetSidebar;
+	private int mDragOffsetContent = OFFSET;
+	private int mDragOffsetSidebar;
 	private boolean mDebugMode;
 	private float mMaximumFlingVelocity = 2 * SNAP_VELOCITY;
 
@@ -224,6 +224,10 @@ public class SidebarLayout extends ViewGroup {
 
 		mOffsetResolver = resolveFractalOrDimentionValue(a
 				.peekValue(R.styleable.SidebarLayout_sidebar_offset), 0, TypedValue.TYPE_DIMENSION);
+		
+		mDragOffsetContent = a.getDimensionPixelOffset(R.styleable.SidebarLayout_drag_content_offset, OFFSET);
+		
+		mDragOffsetSidebar = a.getDimensionPixelOffset(R.styleable.SidebarLayout_drag_sidebar_offset, 0);
 		
 		mDuration = a.getInt(R.styleable.SidebarLayout_android_duration,
 				DURATION);
@@ -466,32 +470,32 @@ public class SidebarLayout extends ViewGroup {
 		if (getContentMode() == SLIDE) {
 			if ((mAlign & VERTICAL_MASK) > 0) {
 				mDragRect.set(contentRect.left,
-						(mAlign == TOP ? contentRect.top - mOffsetSidebar
-								: contentRect.bottom - mOffsetContent),
+						(mAlign == TOP ? contentRect.top - mDragOffsetSidebar
+								: contentRect.bottom - mDragOffsetContent),
 						contentRect.right, (mAlign == TOP ? contentRect.top
-								+ mOffsetContent : contentRect.bottom
-								+ mOffsetSidebar));
+								+ mDragOffsetContent : contentRect.bottom
+								+ mDragOffsetSidebar));
 			} else {
 				mDragRect.set((mAlign == LEFT ? contentRect.left
-						- mOffsetSidebar : contentRect.right - mOffsetContent),
+						- mDragOffsetSidebar : contentRect.right - mDragOffsetContent),
 						contentRect.top, (mAlign == LEFT ? contentRect.left
-								+ mOffsetContent : contentRect.right
-								+ mOffsetSidebar), contentRect.bottom);
+								+ mDragOffsetContent : contentRect.right
+								+ mDragOffsetSidebar), contentRect.bottom);
 			}
 		} else {
 			if ((mAlign & VERTICAL_MASK) > 0) {
 				mDragRect
 						.set(sidebarRect.left,
-								(mAlign == TOP ? sidebarRect.bottom - mOffsetSidebar
-										: sidebarRect.top - mOffsetContent),
+								(mAlign == TOP ? sidebarRect.bottom - mDragOffsetSidebar
+										: sidebarRect.top - mDragOffsetContent),
 										sidebarRect.right, (mAlign == TOP ? sidebarRect.bottom
-										+ mOffsetContent : sidebarRect.top
-										+ mOffsetSidebar));
+										+ mDragOffsetContent : sidebarRect.top
+										+ mDragOffsetSidebar));
 			} else {
-				mDragRect.set((mAlign == LEFT ? sidebarRect.right - mOffsetSidebar
-						: sidebarRect.left - mOffsetContent), sidebarRect.top,
-						(mAlign == LEFT ? sidebarRect.right + mOffsetContent
-								: sidebarRect.left + mOffsetSidebar), sidebarRect.bottom);
+				mDragRect.set((mAlign == LEFT ? sidebarRect.right - mDragOffsetSidebar
+						: sidebarRect.left - mDragOffsetContent), sidebarRect.top,
+						(mAlign == LEFT ? sidebarRect.right + mDragOffsetContent
+								: sidebarRect.left + mDragOffsetSidebar), sidebarRect.bottom);
 			}
 		}
 	}
@@ -724,8 +728,7 @@ public class SidebarLayout extends ViewGroup {
 			if (!mOpened) {
 				mDelta = 0;
 			} else {
-				mDelta = ((mAlign & RIGHT_BOTTOM_MASK) > 0 ? -1 : 1)
-						* getSidebarSize();
+				mDelta = ((mAlign & RIGHT_BOTTOM_MASK) > 0 ? -1 : 1) * getSidebarSize();
 			}
 		}
 		return mSliding;
@@ -1106,21 +1109,21 @@ public class SidebarLayout extends ViewGroup {
 		this.mAllowDrag = mAllowDrag;
 	}
 
-	public int getOffsetContent() {
-		return mOffsetContent;
+	public int getDragOffsetContent() {
+		return mDragOffsetContent;
 	}
 
-	public void setOffsetContent(int offsetContent) {
-		mOffsetContent = offsetContent;
+	public void setDragOffsetContent(int offsetContent) {
+		mDragOffsetContent = offsetContent;
 		requestLayout();
 	}
 
-	public int getOffsetSidebar() {
-		return mOffsetSidebar;
+	public int getDragOffsetSidebar() {
+		return mDragOffsetSidebar;
 	}
 
-	public void setOffsetSidebar(int offsetSidebar) {
-		mOffsetSidebar = offsetSidebar;
+	public void setDragOffsetSidebar(int offsetSidebar) {
+		mDragOffsetSidebar = offsetSidebar;
 		requestLayout();
 	}
 
